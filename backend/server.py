@@ -1,19 +1,22 @@
+import os
 import uuid
 import flask
-from flask import request
+from flask import request, Response
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+from flask_cors import CORS
 import flask_sqlalchemy as SQLAlchemy
 from backend.models import db, TestID, User, ExamResponse
 from backend.admin_views import FlexModelView
 
 # Init flask and SQLAlchemy
-DB_URL = "localhost:3066"
-DB_USER = "flexexam"
-DB_PASSWORD = "xXFlex69Xx"
-DB_NAME = "flexexam"
+DB_URL = os.environ.get("FLEXEXAM_DB_URL")
+DB_USER = os.environ.get("FLEXEXAM_DB_USER")
+DB_PASSWORD = os.environ.get("FLEXEXAM_DB_PASSWORD")
+DB_NAME = os.environ.get("FLEXEXAM_DB_NAME")
 
 app = flask.Flask(__name__)
+CORS(app, origin=os.environ.get("FLEXEXAM_CORS_DOMAIN"))
 app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+mysqldb://{DB_USER}:{DB_PASSWORD}@{DB_URL}/{DB_NAME}"
 app.secret_key = "super secret"
 db.init_app(app)
@@ -50,10 +53,10 @@ def testid_register(testid):
         user.testid = testid
         user.reuse = False
         user.first_name = form["firstname"]
-        user.last_name = form["firstname"]
+        user.last_name = form["lastname"]
         user.email = form["email"]
-        user.date_of_birth = form["dateofbirth"]
-        user.testing_location = form["testinglocation"]
+        user.date_of_birth = form["date-year"] + "-" + form["date-month"] + "-" + form["date-day"]
+        user.testing_location = form["testing-location"]
 
         db.session.add(user)
         db.session.commit()
@@ -64,6 +67,13 @@ def testid_register(testid):
 
     # Send back le token
     return user.token
+
+@app.route("/api/<testid>/validate", methods=["GET", "POST"])
+def validate(testid):
+    testid = TestID.query.filter_by(testid=testid).first()
+    if not testid:
+        return "Test ID Not Found", 404
+    return Response((testid.starttime, testid.endtime), 200)
 
 @app.route("/api/<testid>/submit_exam", methods=["POST"])
 def submit_exam(testid):
@@ -97,6 +107,3 @@ def submit_exam(testid):
         db.session.add(user)
         db.session.commit()
         return "Success"
-
-if __name__ == "__main__":
-    app.run(port=8000)

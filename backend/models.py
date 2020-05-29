@@ -3,10 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 class TestID(db.Model):
+    """
+    Model representing a test ID.
+    Start time is an ISO datetime string.
+    """
     __tablename__ = "testid"
 
     id = db.Column(db.Integer, primary_key=True)
     testid = db.Column(db.String(8))
+    starttime = db.Column(db.String(32))
+    endtime = db.Column(db.String(32))
 
 class User(db.Model):
     """
